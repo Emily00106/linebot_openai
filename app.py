@@ -18,6 +18,9 @@ handler1 = WebhookHandler(os.getenv('CHANNEL_SECRET'))
 SPOONACULAR_API_KEY = os.getenv('SPOONACULAR_API_KEY')
 BASE_URL = "https://api.spoonacular.com/recipes/complexSearch"
 
+# 記錄 OpenAI 回應的訊息計數器
+openai_message_count = 0
+
 # 定義根據食物名稱查找食譜的函數
 def get_recipe_by_name(food_name):
     params = {
@@ -50,6 +53,7 @@ def callback():
 
 @handler1.add(MessageEvent, message=TextMessage)
 def handle_message(event):
+    global openai_message_count  # 使用全局計數器
     text1 = event.message.text.lower()  # 使用小寫來方便處理
     response_text = ""
 
@@ -76,11 +80,18 @@ def handle_message(event):
                     temperature=0.5,
                 )
                 response_text = response['choices'][0]['message']['content'].strip()
+                
+                # 每當 OpenAI 回應時，計數器加 1
+                openai_message_count += 1
+                print(f"OpenAI 已回應 {openai_message_count} 次")
             except:
                 response_text = '發生錯誤！'
 
     # 回應使用者
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=response_text))
+
+    # 若想要顯示目前的計數，可以回應計數器
+    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=f"目前 OpenAI 回應的總數是: {openai_message_count}"))
 
 if __name__ == '__main__':
     app.run()
